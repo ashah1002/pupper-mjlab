@@ -21,7 +21,11 @@ OUT.mkdir(exist_ok=True)
 
 def sh(*args):
   print("$", " ".join(map(str, args)), flush=True)
-  subprocess.run([sys.executable, "-m", *map(str, args)], check=False)
+  # Colab doesn't show a subprocess's own output: capture it and print it here.
+  res = subprocess.run(
+    [sys.executable, "-m", *map(str, args)], capture_output=True, text=True, check=False
+  )
+  print(res.stdout[-6000:], res.stderr[-3000:] if res.returncode else "", flush=True)
 
 
 print("=== 4. checks (cut, hold, mirror) ===")
