@@ -5,11 +5,14 @@ In Colab, after setup and the W&B login cell:
     %run /content/pupper-mjlab/notebooks/run_sit_stay_shake.py
 """
 
+import os
 import subprocess
 import sys
 from pathlib import Path
 
 import wandb
+
+SKIP_REPLAY = os.environ.get("SKIP_REPLAY") == "1"
 
 from mjlab.tasks.tracking.config.pupper import motion_design as md
 from mjlab.tasks.tracking.config.pupper.tricks import sit_stay_shake as t
@@ -42,7 +45,8 @@ MOTION_FILE = library.save_npz(OUT / f"{TRICK_NAME}.npz")
 print("saved", MOTION_FILE)
 
 print("\n=== 4. replay with physics, no policy (Q11) ===")
-sh("mjlab.tasks.tracking.config.pupper.play_motion", MOTION_FILE)
+if not SKIP_REPLAY:
+  sh("mjlab.tasks.tracking.config.pupper.play_motion", MOTION_FILE)
 
 print("\n=== 5. upload the motion to W&B ===")
 sh("mjlab.tasks.tracking.config.pupper.upload_motion", MOTION_FILE, "--name", TRICK_NAME)
@@ -58,7 +62,8 @@ TASK = "Mjlab-Tracking-Flat-Pupper-v3"
 env_cfg = load_env_cfg(TASK)
 env_cfg.scene.num_envs = 4096
 agent_cfg = load_rl_cfg(TASK)
-agent_cfg.max_iterations = 3000
+agent_cfg.max_iterations = int(os.environ.get("ITERATIONS", "1000"))  # handout: 3000
+print("iterations:", agent_cfg.max_iterations, flush=True)
 agent_cfg.logger = "wandb"
 agent_cfg.run_name = TRICK_NAME
 launch_training(TASK, TrainConfig(env=env_cfg, agent=agent_cfg, registry_name=MOTION_ARTIFACT))
