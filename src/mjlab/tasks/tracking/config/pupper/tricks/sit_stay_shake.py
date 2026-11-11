@@ -105,7 +105,14 @@ def cut(motion: md.Motion, start_s: float, end_s: float) -> md.Motion:
   # ========== YOUR CODE HERE (TODO 1) ==========
   # TODO(student): seconds -> frame numbers (round them). Return a new md.Motion
   # with the same fps and just those rows of root_pos, root_quat and joint_pos.
-  raise NotImplementedError("TODO 1: cut() in tricks/sit_stay_shake.py")
+  i0 = round(start_s * motion.fps)
+  i1 = round(end_s * motion.fps)
+  return md.Motion(
+    fps=motion.fps,
+    root_pos=motion.root_pos[i0 : i1 + 1],  # +1: keep the end frame too
+    root_quat=motion.root_quat[i0 : i1 + 1],
+    joint_pos=motion.joint_pos[i0 : i1 + 1],
+  )
 
 
 def hold(motion: md.Motion, at_s: float, seconds: float) -> md.Motion:
@@ -116,7 +123,14 @@ def hold(motion: md.Motion, at_s: float, seconds: float) -> md.Motion:
   # ========== YOUR CODE HERE (TODO 2) ==========
   # TODO(student): take the frame at at_s and repeat it (np.repeat). Use
   # seconds * fps + 1 frames, so the clip starts and ends on that pose.
-  raise NotImplementedError("TODO 2: hold() in tricks/sit_stay_shake.py")
+  i = round(at_s * motion.fps)
+  n = round(seconds * motion.fps) + 1  # +1: starts and ends on that pose
+  return md.Motion(
+    fps=motion.fps,
+    root_pos=np.repeat(motion.root_pos[i : i + 1], n, axis=0),
+    root_quat=np.repeat(motion.root_quat[i : i + 1], n, axis=0),
+    joint_pos=np.repeat(motion.joint_pos[i : i + 1], n, axis=0),
+  )
 
 
 def mirror(motion: md.Motion) -> md.Motion:
@@ -133,7 +147,17 @@ def mirror(motion: md.Motion) -> md.Motion:
   # ========== YOUR CODE HERE (TODO 3) ==========
   # TODO(student): make the three new arrays. md.JOINT_NAMES lists the joints in
   # order; "_l_" in a name means a left leg, "_r_" a right leg.
-  raise NotImplementedError("TODO 3: mirror() in tricks/sit_stay_shake.py")
+  root_pos = motion.root_pos * np.array([1.0, -1.0, 1.0])  # y -> -y
+  root_quat = motion.root_quat * np.array([1.0, -1.0, 1.0, -1.0])  # (w, -x, y, -z)
+  # Each joint takes its partner on the other side ("_l_" <-> "_r_")...
+  partner = [
+    md.JOINT_NAMES.index(n.replace("_l_", "_X_").replace("_r_", "_l_").replace("_X_", "_r_"))
+    for n in md.JOINT_NAMES
+  ]
+  # ...and ALL three angles flip sign: Pupper's left motors are mounted as mirror
+  # images of the right ones (standing is +0.26, 0, -0.52 right; -0.26, 0, +0.52 left).
+  joint_pos = -motion.joint_pos[:, partner]
+  return md.Motion(fps=motion.fps, root_pos=root_pos, root_quat=root_quat, joint_pos=joint_pos)
 
 
 def clips() -> list[md.Clip]:
@@ -143,8 +167,14 @@ def clips() -> list[md.Clip]:
   # TODO(student): make each clip with md.Clip(name, motion, loop=..., next=...).
   # loop=True: the clip repeats until something else is asked for.
   # next: the clip that plays when this one ends. stand_up has next=None.
-  del sitting
-  raise NotImplementedError("TODO 4a: clips() in tricks/sit_stay_shake.py")
+  left = shake_left()
+  return [
+    md.Clip("sit_down", cut(sitting, 0.0, SITTING_FROM_S), loop=False, next="sit_idle"),
+    md.Clip("sit_idle", hold(sitting, SITTING_FROM_S, 1.0), loop=True, next="sit_idle"),
+    md.Clip("shake_left", left, loop=False, next="sit_idle"),
+    md.Clip("shake_right", mirror(left), loop=False, next="sit_idle"),
+    md.Clip("stand_up", cut(sitting, SITTING_UNTIL_S, sitting.duration), loop=False, next=None),
+  ]
 
 
 # ========== YOUR CODE HERE (TODO 4b) ==========
@@ -152,7 +182,13 @@ def clips() -> list[md.Clip]:
 # learns the changes from one clip to the next that appear here, so include
 # every change the robot can make (like sit_idle -> shake_right). Names can
 # repeat.
-ORDER: list[str] = []
+ORDER: list[str] = [
+  "sit_down", "sit_idle", "sit_idle",  # sit, then stay (idle -> idle: the loop)
+  "shake_left", "sit_idle",  # idle -> shake_left -> idle
+  "shake_right", "sit_idle",  # idle -> shake_right -> idle
+  "shake_left", "sit_idle", "shake_right", "sit_idle",  # each shake twice, more practice
+  "stand_up",  # idle -> stand_up: leave the trick
+]
 
 
 # ----------------------------------------------------------------------- checks
