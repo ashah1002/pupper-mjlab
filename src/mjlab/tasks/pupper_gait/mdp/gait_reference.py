@@ -239,6 +239,21 @@ _GAIT_STANCE_Z["lift"] = None  # foot depth below the hip during stance [m]
 _GAIT_SWING_LIFT["lift"] = None  # foot rise above the stance plane in swing [m]
 
 
+# Seek: a trot in place at standing height (the hide-and-seek SeekWalk task).
+# Hide-and-seek mostly walks sideways around a box while turning to face it, and
+# slowly. A reference with a fore-aft stride would drag the body forward or back
+# while it should be going sideways, so this one keeps the trot's timing and
+# stance but has no stride at all: each foot lifts and lands where it is, and the
+# velocity command alone decides where the steps take the body (as for the
+# spider). A lower swing than the trot's 9 cm: at these speeds the foot only
+# needs to clear the ground, and a smaller lift keeps the body steadier for the
+# camera.
+_GAIT_TOUCHDOWN["seek"] = (0.0, 0.5, 0.5, 0.0)  # trot: diagonal pairs together
+_GAIT_STRIDE["seek"] = 0.0
+_GAIT_STANCE_Z["seek"] = -0.14  # the trot's: standing height
+_GAIT_SWING_LIFT["seek"] = 0.06
+
+
 # Spider: a trot in place, low and splayed (the SpiderWalk task). Not a foot-space
 # triangle like the gaits above: from the spider stance the front knees are at
 # their limit, so a foot can't simply rise straight up. Instead each leg moves in

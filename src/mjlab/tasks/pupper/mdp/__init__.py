@@ -44,8 +44,11 @@ from .rewards import (  # noqa: F401
   track_yaw_velocity,
 )
 from .velocity_command import (  # noqa: F401
+  OrbitVelocityCommand,
+  OrbitVelocityCommandCfg,
   PupperMaxSpeedCommand,
   PupperMaxSpeedCommandCfg,
   PupperVelocityCommand,
   PupperVelocityCommandCfg,
+  sample_orbit_commands,
 )

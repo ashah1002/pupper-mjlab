@@ -6,6 +6,7 @@ from mjlab.tasks.pupper_gait.mystery_env_cfg import (
 from mjlab.tasks.pupper_gait.pupper_gait_env_cfg import (
   pupper_mixed_gaits_bumpy_env_cfg,
   pupper_mixed_gaits_env_cfg,
+  pupper_seek_walk_env_cfg,
   pupper_spider_walk_env_cfg,
   pupper_stable_gait_bumpy_env_cfg,
   pupper_stable_gait_env_cfg,
@@ -43,6 +44,19 @@ register_mjlab_task(
   env_cfg=pupper_spider_walk_env_cfg(),
   play_env_cfg=pupper_spider_walk_env_cfg(play=True),
   rl_cfg=_spider_rl,
+  runner_cls=PupperOnPolicyRunner,
+)
+
+# SeekWalk (hide-and-seek final project): slow walking at standing height that
+# tracks orbit commands (sideways around a box while facing it). It deploys as
+# the seek_walk controller, which the game drives for its whole search.
+_seek_rl = pupper_gait_ppo_runner_cfg()
+_seek_rl.experiment_name = "pupper_seek_walk"
+register_mjlab_task(
+  task_id="Mjlab-SeekWalk-Flat-Pupper-v3",
+  env_cfg=pupper_seek_walk_env_cfg(),
+  play_env_cfg=pupper_seek_walk_env_cfg(play=True),
+  rl_cfg=_seek_rl,
   runner_cls=PupperOnPolicyRunner,
 )
 

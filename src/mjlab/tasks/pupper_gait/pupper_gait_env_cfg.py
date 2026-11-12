@@ -100,6 +100,22 @@ SPIDER_MAX_LIN_VEL_Y: float = 0.1
 SPIDER_MAX_ANG_VEL_Z: float = 0.6
 SPIDER_FREQUENCY: float = 2.0
 
+# Seek walk (hide-and-seek final project): slow walking at standing height, mostly
+# sideways around a box while turning to face it. Ranges cover what the game
+# sends (hide_and_seek/config.py Motion: |vx| <= 0.30, |vy| <= 0.25, |wz| <= 60
+# deg/s) with a margin; ORBIT_* shape the orbit commands (see
+# mdp.OrbitVelocityCommand).
+SEEK_MAX_LIN_VEL_X: float = 0.35
+SEEK_MAX_LIN_VEL_Y: float = 0.3
+SEEK_MAX_ANG_VEL_Z: float = 1.2
+SEEK_FREQUENCY: float = 1.5  # StableGait's cadence: ~11 control steps per swing
+SEEK_REL_ORBIT_ENVS: float = 0.5
+# Every orbit turns at |wz| = |vy| / r >= 0.12 / 1.2 = 0.1 rad/s: slower turns
+# count as "no turn" to the heading hold (heading_hold_yaw_threshold), which
+# would replace the orbit's yaw with a hold-your-heading correction.
+SEEK_ORBIT_RADIUS: tuple[float, float] = (0.6, 1.2)
+SEEK_ORBIT_SPEED: tuple[float, float] = (0.12, 0.3)
+
 # Forward command range [m/s] for the dedicated gallop task. Forward-only: the
 # reference is a rotatory footfall order with a lead, so it is not symmetric under
 # time reversal the way the diagonal trot is.
@@ -633,6 +649,45 @@ def pupper_spider_walk_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
   assert isinstance(twist, mdp.UniformVelocityCommandCfg)
   twist.ranges.lin_vel_y = (-SPIDER_MAX_LIN_VEL_Y, SPIDER_MAX_LIN_VEL_Y)
   twist.ranges.ang_vel_z = (-SPIDER_MAX_ANG_VEL_Z, SPIDER_MAX_ANG_VEL_Z)
+  return cfg
+
+
+def pupper_seek_walk_env_cfg(play: bool = False) -> ManagerBasedRlEnvCfg:
+  """Hide-and-seek's walk: slow, at standing height, good at circling a box.
+
+  A gait task like the spider walk: the reference trots in place (the ``seek``
+  gait: no stride), and the velocity command decides where the steps go. Half
+  the commands are orbits -- walking sideways around a point 0.6-1.4 m ahead
+  while turning to keep facing it (``mdp.OrbitVelocityCommand``) -- the rest are
+  the usual mix (straight, turn in place, stand, random), so the same policy
+  also walks up to a box and stands still to look. On the robot it is its own
+  walking controller (``seek_walk``), active for the whole search.
+  """
+  cfg = pupper_flat_env_cfg(play=play)
+  cfg = _add_gait(
+    cfg,
+    play,
+    lin_vel_x_range=(-SEEK_MAX_LIN_VEL_X, SEEK_MAX_LIN_VEL_X),
+    yaw_stages=None,
+  )
+  for params in (
+    cfg.observations["actor"].terms["policy"].params,
+    cfg.observations["critic"].terms["gait_reference"].params,
+    cfg.rewards["gait_tracking"].params,
+  ):
+    params["gait"] = "seek"
+    params["frequency"] = SEEK_FREQUENCY
+  old = cfg.commands["twist"]
+  assert isinstance(old, mdp.PupperVelocityCommandCfg)
+  twist = mdp.OrbitVelocityCommandCfg(
+    **{f.name: getattr(old, f.name) for f in dataclasses.fields(old)},
+    rel_orbit_envs=SEEK_REL_ORBIT_ENVS,
+    orbit_radius=SEEK_ORBIT_RADIUS,
+    orbit_speed=SEEK_ORBIT_SPEED,
+  )
+  twist.ranges.lin_vel_y = (-SEEK_MAX_LIN_VEL_Y, SEEK_MAX_LIN_VEL_Y)
+  twist.ranges.ang_vel_z = (-SEEK_MAX_ANG_VEL_Z, SEEK_MAX_ANG_VEL_Z)
+  cfg.commands["twist"] = twist
   return cfg
 
 
