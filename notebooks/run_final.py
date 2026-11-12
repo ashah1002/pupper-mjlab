@@ -1,7 +1,9 @@
 """Train the hide-and-seek final project's two policies (Colab, like run_spider.py).
 
-In Colab, after setup and the W&B login cell:
-    !cd /content/pupper-mjlab && git pull -q
+In Colab, after setup and the W&B login cell (the setup clones ma-xr/pupper-mjlab;
+this branch lives on the fork ashah1002/pupper-mjlab):
+    !cd /content/pupper-mjlab && git remote add seek https://github.com/ashah1002/pupper-mjlab.git
+    !cd /content/pupper-mjlab && git fetch -q seek hide-and-seek && git checkout -q -b hide-and-seek seek/hide-and-seek
     !STAGE=hide_eyes nohup python -u notebooks/run_final.py > /content/hide_eyes.log 2>&1 &
     !STAGE=seek_walk nohup python -u notebooks/run_final.py > /content/seek_walk.log 2>&1 &
 
