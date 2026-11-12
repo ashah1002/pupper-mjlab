@@ -75,14 +75,28 @@ def cut(motion: md.Motion, start_s: float, end_s: float) -> md.Motion:
   """The frames from start_s to end_s, both included: your Part 5 cut()."""
   # ========== YOUR CODE HERE ==========
   # TODO(student): paste your cut() from tricks/sit_stay_shake.py (Part 5).
-  raise NotImplementedError("paste your cut() from Part 5")
+  i0 = round(start_s * motion.fps)
+  i1 = round(end_s * motion.fps)
+  return md.Motion(
+    fps=motion.fps,
+    root_pos=motion.root_pos[i0 : i1 + 1],
+    root_quat=motion.root_quat[i0 : i1 + 1],
+    joint_pos=motion.joint_pos[i0 : i1 + 1],
+  )
 
 
 def hold(motion: md.Motion, at_s: float, seconds: float) -> md.Motion:
   """The frame at at_s, held for seconds: your Part 5 hold()."""
   # ========== YOUR CODE HERE ==========
   # TODO(student): paste your hold() from tricks/sit_stay_shake.py (Part 5).
-  raise NotImplementedError("paste your hold() from Part 5")
+  i = round(at_s * motion.fps)
+  n = round(seconds * motion.fps) + 1
+  return md.Motion(
+    fps=motion.fps,
+    root_pos=np.repeat(motion.root_pos[i : i + 1], n, axis=0),
+    root_quat=np.repeat(motion.root_quat[i : i + 1], n, axis=0),
+    joint_pos=np.repeat(motion.joint_pos[i : i + 1], n, axis=0),
+  )
 
 
 def reverse(motion: md.Motion) -> md.Motion:
@@ -91,7 +105,12 @@ def reverse(motion: md.Motion) -> md.Motion:
   # TODO(student): a new md.Motion, same fps, with every array's frames in reverse
   # order. (Velocities would flip sign, but a Motion has none: they are worked out
   # from the frames when the file is written.)
-  raise NotImplementedError("TODO S1: reverse() in tricks/spider.py")
+  return md.Motion(
+    fps=motion.fps,
+    root_pos=motion.root_pos[::-1].copy(),  # last frame first
+    root_quat=motion.root_quat[::-1].copy(),
+    joint_pos=motion.joint_pos[::-1].copy(),
+  )
 
 
 def clips() -> list[md.Clip]:
@@ -103,15 +122,19 @@ def clips() -> list[md.Clip]:
   # takes Pupper from the stance back to standing, wiggling on the way. Which
   # motion you already have does exactly that, played backwards?
   # Then: which clip loops, and which clip follows which (next=...)?
-  del spider
-  raise NotImplementedError("TODO S2a: clips() in tricks/spider.py")
+  down = settle_into_stance(cut(spider, 0.0, WIGGLE_UNTIL_S))  # stand, lie down, wiggle, settle
+  return [
+    md.Clip("spider_down", down, loop=False, next="spider_idle"),
+    md.Clip("spider_idle", hold(down, down.duration, 1.0), loop=True, next="spider_idle"),
+    md.Clip("spider_up", reverse(down), loop=False, next=None),  # stance -> wiggle -> standing
+  ]
 
 
 # ========== YOUR CODE HERE (TODO S2b) ==========
 # TODO(student): the training sequence. As in Part 5, the policy only learns the
 # changes from one clip to the next that appear here. (On the robot the walking
 # policy takes over after spider_idle, and spider_up starts from the stance.)
-ORDER: list[str] = []
+ORDER: list[str] = ["spider_down", "spider_idle", "spider_idle", "spider_up"]
 
 
 # ----------------------------------------------------------------------- checks
