@@ -37,9 +37,9 @@ subprocess.Popen(
 )
 for _ in range(120):
   time.sleep(2)
-  m = re.search(r"https://\S+\.viser\.sh\S*|https://\S*share\S*", log.read_text(errors="ignore"))
+  m = re.search(r"Open the viewer:\s*(\S+)", log.read_text(errors="ignore"))
   if m:
-    print("VIEWER:", m.group(0), flush=True)
+    print("VIEWER:", m.group(1), flush=True)
     break
 else:
   print("no share link yet; see /content/viewer.log", flush=True)
